@@ -155,7 +155,7 @@ if st.button("Ask"):
             },
         )
         response = qa.invoke({"question": query, "chat_history": chat_history})
-        st.write(response)
+        # st.write(response)
 
         answer = response.get("answer", "")
         chat_history.append((query, answer))
