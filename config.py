@@ -7,9 +7,9 @@ load_dotenv()
 
 TOP_K_RESULTS = 4  # This is a default value
 DATA_FOLDER = "podcasts"
-DB_FAISS_PATH = "faiss_index_pom"
-OPEN_AI_MODEL = "gpt-3.5-turbo"
-OPEN_AI_MODEL_TEMPERATURE = 0
+OPEN_AI_MODEL = "gpt-4o-mini"
+DB_FAISS_PATH = "faiss_index"
+OPEN_AI_MODEL_TEMPERATURE = 0.5
 EMBEDDINGS_MODEL = "text-embedding-ada-002"  # text-embedding-3-large
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "your_openai_api_key")
 EMBEDDINGS_MODEL = OpenAIEmbeddings(
