@@ -2,12 +2,23 @@ import os
 import config
 
 from langchain.docstore.document import Document
+
+# TODO Test with this one -> from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
+# TODO Try with this splitter -> from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 
 def main():
-    """Loads podcast transcripts, splits them into chunks, generates embeddings, and stores them in FAISS."""
+    """
+    Loads podcast transcripts, splits them into chunks, generates embeddings, and stores them in FAISS.
+
+    - Reads all `.txt` files from the specified data folder.
+    - Splits each transcript into smaller chunks for efficient retrieval.
+    - Generates embeddings for each chunk using OpenAI's embedding model.
+    - Stores the embeddings in a FAISS vector database.
+    """
     total_processed = 0
     vector_store = None
 
@@ -23,6 +34,10 @@ def main():
                 # Split into chunks
                 chunks = splitter.split_text(text)
                 documents = [Document(page_content=chunk) for chunk in chunks]
+
+                # Alternative approach:
+                # chunks = splitter.split_text(text)
+                # documents = splitter.create_documents(chunks)
 
                 if vector_store is None:
                     vector_store = FAISS.from_documents(
