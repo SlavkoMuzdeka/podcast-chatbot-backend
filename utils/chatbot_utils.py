@@ -63,7 +63,7 @@ def _get_retriever():
     Loads and returns the FAISS retriever from local storage.
     """
     return FAISS.load_local(
-        config.DB_FAISS_PATH,
+        config.FAISS_INDEX_NAME,
         config.EMBEDDINGS_MODEL,
         allow_dangerous_deserialization=True,
     )
