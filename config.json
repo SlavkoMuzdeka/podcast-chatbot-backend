@@ -1,0 +1,20 @@
+{
+  "bitwise_articles": {
+    "debug": true,
+    "folder_name": "bots_data/example",
+    "base_url": "https://experts.bitwiseinvestments.com"
+  },
+  "pinecone": {
+    "debug": true,
+    "cloud": "aws",
+    "metric": "cosine",
+    "region": "us-east-1",
+    "namespace": "empire",
+    "transcriptions_folder": "bots_data/empire",
+    "index_name": "pinecone-index",
+    "embeddings_vector_length": 3072,
+    "embeddings_model": "text-embedding-3-large",
+    "chunk_size": 1000,
+    "chunk_overlap": 100
+  }
+}

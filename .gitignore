@@ -1,9 +1,5 @@
 .venv
 .env
 __pycache__
-podcasts
-bitwise_articles
-faiss_index
-empire
-jim_bianco
-pom.py
+bots_data
+query_pinecone_example.py
