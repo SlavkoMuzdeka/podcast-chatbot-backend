@@ -8,6 +8,9 @@ from pinecone import Pinecone, ServerlessSpec
 from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+from config import MyConfig
+from database.db_models import Episode
+
 load_dotenv(override=True)
 logger = logging.getLogger(__name__)
 
@@ -15,12 +18,13 @@ logger = logging.getLogger(__name__)
 class PineconeManager:
     """Manager for Pinecone vector database operations"""
 
-    def __init__(self):
-        self.pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY", ""))
-        self.index_name = os.getenv("PINECONE_INDEX", "podcast-chatbot")
+    def __init__(self, config: MyConfig):
+        self.config = config
+        self.pc = Pinecone(api_key=self.config.PINECONE_API_KEY)
+        self.index_name = self.config.PINECONE_INDEX_NAME
         self.embeddings = OpenAIEmbeddings(
-            model=os.getenv("OPENAI_EMBEDDINGS_MODEL", "text-embedding-3-large"),
-            openai_api_key=os.getenv("OPENAI_API_KEY", ""),
+            model=self.config.OPENAI_EMBEDDINGS_MODEL,
+            openai_api_key=self.config.OPENAI_API_KEY,
         )
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000, chunk_overlap=100, separators=["\n\n", "\n", ". ", " ", ""]
@@ -34,8 +38,8 @@ class PineconeManager:
                 logger.info(f"Creating Pinecone index: {self.index_name}")
                 self.pc.create_index(
                     name=self.index_name,
-                    dimension=3072,  # text-embedding-3-large dimension
-                    metric="cosine",
+                    dimension=self.config.PINECONE_DIMENSION,
+                    metric=self.config.PINECONE_METRIC,
                     spec=ServerlessSpec(
                         cloud=os.getenv("PINECONE_CLOUD", "aws"),
                         region=os.getenv("PINECONE_REGION", "us-east-1"),
@@ -48,21 +52,15 @@ class PineconeManager:
 
     def store_episode_content(
         self,
-        episode_id: str,
-        namespace: str,
-        transcript: str,
-        summary: str,
-        metadata: Dict[str, Any],
+        episode: Episode,
+        db_expert_name: str,
     ) -> bool:
         """
         Store episode content in Pinecone
 
         Args:
-            episode_id: Unique identifier for the episode
-            namespace: Pinecone namespace (for expert or temporary storage)
-            transcript: Episode transcript
-            summary: Episode summary
-            metadata: Additional metadata
+            episode: Episode object containing all relevant data
+            db_expert_name: Name of the expert (for Pinecone)
 
         Returns:
             bool: Success status
@@ -70,8 +68,8 @@ class PineconeManager:
         try:
             index = self.pc.Index(self.index_name)
 
-            # Combine transcript and summary for better context
-            full_content = f"Summary: {summary}\n\nTranscript: {transcript}"
+            # Combine content for better context
+            full_content = f"Content: {episode.content}"
 
             # Split content into chunks
             chunks = self.text_splitter.split_text(full_content)
@@ -82,24 +80,24 @@ class PineconeManager:
             # Prepare vectors for upsert
             vectors = []
             for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
-                vector_id = f"{episode_id}_chunk_{i}"
+                vector_id = f"{episode.id}_chunk_{i}"
                 vector_metadata = {
-                    "episode_id": episode_id,
+                    "episode_id": str(episode.id),
+                    "episode_title": episode.title,
                     "chunk_index": i,
                     "text": chunk,
-                    "content_type": "episode_content",
-                    "created_at": datetime.now().isoformat(),
-                    **metadata,
                 }
                 vectors.append(
                     {"id": vector_id, "values": embedding, "metadata": vector_metadata}
                 )
 
             # Upsert vectors to Pinecone
-            index.upsert(vectors=vectors, namespace=namespace)
+            index.upsert(
+                vectors=vectors, namespace=db_expert_name.lower().replace(" ", "_")
+            )
 
             logger.info(
-                f"Successfully stored {len(vectors)} chunks for episode {episode_id} in namespace {namespace}"
+                f"Successfully stored {len(vectors)} chunks for episode {episode.title} in namespace {db_expert_name.lower().replace(' ', '_')}"
             )
             return True
 
@@ -172,7 +170,7 @@ class PineconeManager:
 
             # Query to find all vectors for this episode
             results = index.query(
-                vector=[0] * 3072,  # Dummy vector for metadata filtering
+                vector=[0] * int(self.config.PINECONE_DIMENSION),
                 top_k=10000,  # Large number to get all chunks
                 include_metadata=True,
                 namespace=namespace,
