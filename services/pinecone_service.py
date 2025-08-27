@@ -15,7 +15,7 @@ load_dotenv(override=True)
 logger = logging.getLogger(__name__)
 
 
-class PineconeManager:
+class PineconeService:
     """Manager for Pinecone vector database operations"""
 
     def __init__(self, config: MyConfig):
@@ -154,9 +154,9 @@ class PineconeManager:
             logger.error(f"Error querying knowledge base: {str(e)}")
             return []
 
-    def delete_episode_content(self, episode_id: str, namespace: str) -> bool:
+    def delete_episode(self, episode_id: str, namespace: str) -> bool:
         """
-        Delete all content for a specific episode
+        Delete specified episode
 
         Args:
             episode_id: Episode identifier
@@ -205,8 +205,8 @@ class PineconeManager:
         """
         try:
             index = self.pc.Index(self.index_name)
-            index.delete(delete_all=True, namespace=namespace)
-            logger.info(f"Deleted namespace: {namespace}")
+            index.delete(delete_all=True, namespace=namespace.lower().replace(" ", "_"))
+            logger.info(f"Deleted namespace: {namespace.lower().replace(' ', '_')}")
             return True
 
         except Exception as e:

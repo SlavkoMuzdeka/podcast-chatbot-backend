@@ -35,8 +35,9 @@ class MyConfig:
     PINECONE_METRIC = os.getenv("PINECONE_METRIC", "cosine")
 
     # Authentication (Simple auth for demo)
-    DEFAULT_USERNAME = os.getenv("DEFAULT_USERNAME")
-    DEFAULT_PASSWORD = os.getenv("DEFAULT_PASSWORD")
+    DEFAULT_DB_USERNAME = os.getenv("DEFAULT_DB_USERNAME")
+    DEFAULT_DB_PASSWORD = os.getenv("DEFAULT_DB_PASSWORD")
+    DEFAULT_DB_EMAIL = os.getenv("DEFAULT_DB_EMAIL")
 
     # Security Configuration
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")

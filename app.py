@@ -8,11 +8,11 @@ from routes.auth_routes import auth_bp
 from utils.app_utils import setup_logging
 from routes.expert_routes import expert_bp
 from managers.auth_manager import AuthManager
-from managers.chat_manager import ChatManager
 from flask import Flask, app, request, jsonify
 from services.db_service import DatabaseService
 from managers.expert_manager import ExpertManager
-from managers.pinecone_manager import PineconeManager
+from managers.episode_manager import EpisodeManager
+from services.pinecone_service import PineconeService
 from sqlalchemy_utils import database_exists, create_database
 
 
@@ -36,15 +36,16 @@ def create_app():
 
     # Initialize services
     db_service = DatabaseService(db)
+    pinecone_service = PineconeService(app_config)
+
     auth_manager = AuthManager(db_service, app_config)
-    pinecone_manager = PineconeManager(app_config)
-    chat_manager = ChatManager(db_service, pinecone_manager)
-    expert_manager = ExpertManager(db_service, pinecone_manager)
+    expert_manager = ExpertManager(db_service, pinecone_service)
+    episode_manager = EpisodeManager(db_service, pinecone_service)
 
     # Store services in app context
     app.auth_manager = auth_manager
-    app.chat_manager = chat_manager
     app.expert_manager = expert_manager
+    app.episode_manager = episode_manager
 
     # Create tables and demo data
     with app.app_context():
@@ -96,7 +97,7 @@ if __name__ == "__main__":
     logger.info("Starting Podcast Chatbot server...")
     logger.info("Demo users:")
     logger.info(
-        f"  - user: {app.config['DEFAULT_USERNAME']} / password: ({app.config['DEFAULT_PASSWORD']})"
+        f"  - user: {app.config['DEFAULT_DB_USERNAME']} / password: ({app.config['DEFAULT_DB_PASSWORD']})"
     )
     logger.info("------------------------------------------------------------")
     app.run(debug=app.config["DEBUG"], threaded=True)

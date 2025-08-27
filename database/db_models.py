@@ -99,6 +99,8 @@ class Episode(db.Model):
             "expertName": self.expert.name,
             "title": self.title,
             "content": self.content,
+            "createdAt": self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "updatedAt": self.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
 
@@ -111,7 +113,6 @@ class Expert(db.Model):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     name = Column(String(100), nullable=False, unique=True)
     description = Column(Text, nullable=True)
-    is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(
         DateTime(timezone=True),
@@ -132,11 +133,11 @@ class Expert(db.Model):
     def to_dict(self) -> dict:
         return {
             "id": str(self.id),
-            "userEmail": self.user.email,
             "name": self.name,
             "description": self.description,
             "totalEpisodes": len(self.episodes),
-            "totalChatSessions": len(self.chat_sessions),
+            "createdAt": self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "updatedAt": self.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
 

@@ -1,15 +1,13 @@
-import json
 import logging
 
-from typing import List, Dict, Any, Optional
 from services.db_service import DatabaseService
-from managers.pinecone_manager import PineconeManager
+from services.pinecone_service import PineconeService
 
 logger = logging.getLogger(__name__)
 
 
 class ChatManager:
-    def __init__(self, db_service: DatabaseService, pinecone_manager: PineconeManager):
+    def __init__(self, db_service: DatabaseService, pinecone_manager: PineconeService):
         """Initialize chat manager with Pinecone and Database integration"""
         self.pinecone_manager = pinecone_manager
         self.db_service = db_service
