@@ -3,6 +3,7 @@ import logging
 from config import MyConfig
 from flask_cors import CORS
 from datetime import datetime
+from seed_db import init_database
 from database.db_models import db
 from routes.auth_routes import auth_bp
 from utils.app_utils import setup_logging
@@ -54,6 +55,9 @@ def create_app():
             logger.info(f"Database {db.engine.url.database} created!")
 
         db.create_all()
+
+        if app_config.SEED_DB:
+            init_database()
         logger.info("Database initialized successfully")
 
     # Register blueprints
@@ -90,8 +94,9 @@ def create_app():
     return app
 
 
+app = create_app()
+
 if __name__ == "__main__":
-    app = create_app()
 
     logger = logging.getLogger(__name__)
     logger.info("Starting Podcast Chatbot server...")

@@ -1,15 +1,14 @@
 import logging
 
+from typing import List, Optional
 from sqlalchemy import and_, or_, desc
 from datetime import datetime, timezone
 from sqlalchemy.exc import IntegrityError
-from typing import List, Optional, Dict, Any
 from werkzeug.security import generate_password_hash
 from database.db_models import (
     User,
     Expert,
     Episode,
-    UsageLog,
 )
 
 logger = logging.getLogger(__name__)
@@ -24,54 +23,12 @@ class DatabaseService:
     ########
     # USER #
     ########
-    def create_user(
-        self, username: str, password: str, email: str = None, full_name: str = None
-    ) -> Optional[User]:
-        """Create a new user"""
-        try:
-            # Check if user already exists
-            existing_user = (
-                self.db.session.query(User)
-                .filter(or_(User.username == username, User.email == email))
-                .first()
-            )
-
-            if existing_user:
-                return None
-
-            user = User(
-                username=username,
-                email=email,
-                password_hash=generate_password_hash(password),
-                full_name=full_name,
-            )
-
-            self.db.session.add(user)
-            self.db.session.commit()
-            self.db.session.refresh(user)
-
-            logger.info(f"Created user: {user.email}")
-            return user
-
-        except Exception as e:
-            logger.error(f"Error creating user: {str(e)}")
-            self.db.session.rollback()
-            return None
-
     def get_user_by_username(self, username: str) -> Optional[User]:
         """Get user by username"""
         try:
             return self.db.session.query(User).filter(User.username == username).first()
         except Exception as e:
             logger.error(f"Error getting user by username: {str(e)}")
-            return None
-
-    def get_user_by_id(self, user_id: str) -> Optional[User]:
-        """Get user by ID"""
-        try:
-            return User.query.get(user_id)
-        except Exception as e:
-            logger.error(f"Error getting user by ID: {str(e)}")
             return None
 
     ##########
@@ -126,30 +83,6 @@ class DatabaseService:
             return Expert.query.get(expert_id)
         except Exception as e:
             logger.error(f"Error getting expert by ID: {str(e)}")
-            return None
-
-    def update_expert(self, expert_id: str, **kwargs) -> Optional[Expert]:
-        """Update expert"""
-        try:
-            expert = self.get_expert_by_id(expert_id)
-
-            if not expert:
-                return None
-
-            for key, value in kwargs.items():
-                if hasattr(expert, key):
-                    setattr(expert, key, value)
-
-            expert.updated_at = datetime.now(timezone.utc)
-            self.db.session.commit()
-            self.db.session.refresh(expert)
-
-            logger.info(f"Updated expert: {expert.name}")
-            return expert
-
-        except Exception as e:
-            logger.error(f"Error updating expert: {str(e)}")
-            self.db.session.rollback()
             return None
 
     def delete_expert(self, expert_id: str, user_id: str) -> bool:
@@ -260,140 +193,3 @@ class DatabaseService:
             logger.error(f"Error deleting episode: {str(e)}")
             self.db.session.rollback()
             return False
-
-    ################
-    # CHAT SESSION #
-    ################
-    # def create_chat_session(
-    #     self,
-    #     user_id: str,
-    #     session_type: str,
-    #     expert_id: str = None,
-    #     episode_id: str = None,
-    # ) -> Optional[ChatSession]:
-    #     """Create a new chat session"""
-    #     try:
-    #         session = ChatSession(
-    #             user_id=user_id,
-    #             session_type=session_type,
-    #             expert_id=expert_id,
-    #             episode_id=episode_id,
-    #         )
-
-    #         self.db.session.add(session)
-    #         self.db.session.commit()
-    #         self.db.session.refresh(session)
-
-    #         logger.info(
-    #             f"Created chat session: {json.dumps(session.to_dict(), indent=2)}"
-    #         )
-    #         return session
-
-    #     except Exception as e:
-    #         logger.error(f"Error creating chat session: {str(e)}")
-    #         self.db.session.rollback()
-    #         return None
-
-    # def get_chat_session(self, session_id: str) -> Optional[ChatSession]:
-    #     """Get chat session by ID"""
-    #     try:
-    #         return ChatSession.query.get(session_id)
-    #     except Exception as e:
-    #         logger.error(f"Error getting chat session: {str(e)}")
-    #         return None
-
-    # def get_user_chat_sessions(
-    #     self, user_id: str, limit: int = 50
-    # ) -> List[ChatSession]:
-    #     """Get user's chat sessions"""
-    #     try:
-    #         return (
-    #             ChatSession.query.filter(ChatSession.user_id == user_id)
-    #             .order_by(desc(ChatSession.updated_at))
-    #             .limit(limit)
-    #             .all()
-    #         )
-    #     except Exception as e:
-    #         logger.error(f"Error getting user chat sessions: {str(e)}")
-    #         return []
-
-    # def add_chat_message(
-    #     self,
-    #     session_id: str,
-    #     role: str,
-    #     content: str,
-    #     message_metadata: Dict[str, Any] = None,
-    # ) -> Optional[ChatMessage]:
-    #     """Add message to chat session"""
-    #     try:
-    #         message = ChatMessage(
-    #             session_id=session_id,
-    #             role=role,
-    #             content=content,
-    #             message_metadata=message_metadata,
-    #         )
-
-    #         self.db.session.add(message)
-
-    #         session = self.get_chat_session(session_id)
-    #         if session:
-    #             session.updated_at = datetime.now(timezone.utc)
-
-    #         self.db.session.commit()
-    #         self.db.session.refresh(message)
-
-    #         return message
-
-    #     except Exception as e:
-    #         logger.error(f"Error adding chat message: {str(e)}")
-    #         self.db.session.rollback()
-    #         return None
-
-    # def get_chat_messages(self, session_id: str) -> List[ChatMessage]:
-    #     """Get all messages for a chat session"""
-    #     try:
-    #         return (
-    #             self.db.session.query(ChatMessage)
-    #             .filter(ChatMessage.session_id == session_id)
-    #             .order_by(ChatMessage.created_at)
-    #             .all()
-    #         )
-    #     except Exception as e:
-    #         logger.error(f"Error getting chat messages: {str(e)}")
-    #         return []
-
-    #############
-    # USAGE LOG #
-    #############
-    def log_usage(
-        self,
-        user_id: str,
-        action_type: str,
-        session_id: str = None,
-        tokens_used: int = None,
-        cost: float = None,
-        processing_time: float = None,
-        metadata: Dict[str, Any] = None,
-    ) -> Optional[UsageLog]:
-        """Log usage for analytics and billing"""
-        try:
-            usage_log = UsageLog(
-                user_id=user_id,
-                session_id=session_id,
-                action_type=action_type,
-                tokens_used=tokens_used,
-                cost=cost,
-                processing_time=processing_time,
-                log_metadata=metadata,
-            )
-
-            self.db.session.add(usage_log)
-            self.db.session.commit()
-            self.db.session.refresh(usage_log)
-
-            return usage_log
-
-        except Exception as e:
-            logger.error(f"Error logging usage: {str(e)}")
-            self.db.session.rollback()
-            return None

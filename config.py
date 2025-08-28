@@ -16,6 +16,7 @@ class MyConfig:
     CORS_ORIGIN = os.getenv("FRONTEND_URL")
 
     # Database Configuration
+    SEED_DB = os.getenv("SEED_DB") == "True"
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
 
     # OpenAI Configuration
@@ -41,7 +42,3 @@ class MyConfig:
 
     # Security Configuration
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-
-    # Logging Configuration
-    LOG_FILE_PATH = os.getenv("LOG_FILE_PATH", "mylogs/app.log")
-    LOG_MAX_BYTES = int(os.getenv("LOG_MAX_BYTES", 10485760))  # 10MB

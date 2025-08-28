@@ -42,7 +42,6 @@ def init_database():
                     email=admin_email,
                     password_hash=generate_password_hash(admin_password),
                     full_name="System Administrator",
-                    is_active=True,
                 )
                 db.session.add(admin_user)
                 db.session.commit()
