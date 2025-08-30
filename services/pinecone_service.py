@@ -1,15 +1,14 @@
 import os
 import logging
 
-from datetime import datetime
+from config import MyConfig
 from dotenv import load_dotenv
 from typing import List, Dict, Any
+from database.db_models import Episode
 from pinecone import Pinecone, ServerlessSpec
 from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from config import MyConfig
-from database.db_models import Episode
 
 load_dotenv(override=True)
 logger = logging.getLogger(__name__)
@@ -106,7 +105,7 @@ class PineconeService:
             return False
 
     def query_knowledge(
-        self, query: str, namespace: str, top_k: int = 5
+        self, query: str, namespace: str, include_metadata: bool = True
     ) -> List[Dict[str, Any]]:
         """
         Query the knowledge base for relevant content
@@ -114,7 +113,6 @@ class PineconeService:
         Args:
             query: Search query
             namespace: Pinecone namespace to search in
-            top_k: Number of results to return
 
         Returns:
             List of relevant content chunks
@@ -128,8 +126,8 @@ class PineconeService:
             # Search Pinecone
             results = index.query(
                 vector=query_embedding,
-                top_k=top_k,
-                include_metadata=True,
+                top_k=self.config.PINECONE_TOP_K,
+                include_metadata=include_metadata,
                 namespace=namespace,
             )
 
@@ -140,6 +138,7 @@ class PineconeService:
                     {
                         "text": match.metadata.get("text", ""),
                         "score": match.score,
+                        "episode_title": match.metadata.get("episode_title", ""),
                         "episode_id": match.metadata.get("episode_id", ""),
                         "metadata": match.metadata,
                     }

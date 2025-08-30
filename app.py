@@ -9,6 +9,7 @@ from routes.auth_routes import auth_bp
 from utils.app_utils import setup_logging
 from routes.expert_routes import expert_bp
 from managers.auth_manager import AuthManager
+from managers.chat_manager import ChatManager
 from flask import Flask, app, request, jsonify
 from services.db_service import DatabaseService
 from managers.expert_manager import ExpertManager
@@ -42,9 +43,11 @@ def create_app():
     auth_manager = AuthManager(db_service, app_config)
     expert_manager = ExpertManager(db_service, pinecone_service)
     episode_manager = EpisodeManager(db_service, pinecone_service)
+    chat_manager = ChatManager(app_config, db_service, pinecone_service)
 
     # Store services in app context
     app.auth_manager = auth_manager
+    app.chat_manager = chat_manager
     app.expert_manager = expert_manager
     app.episode_manager = episode_manager
 

@@ -94,3 +94,25 @@ def delete_episode(expert_id, episode_id):
     except Exception as e:
         logger.error(f"Error deleting episode {episode_id}: {str(e)}")
         return jsonify({"success": False, "error": "Error deleting episode"}), 500
+
+
+@expert_bp.route("/chat", methods=["POST"])
+@jwt_required
+def chat_with_expert():
+    """Chat with a specific expert (non-streaming)"""
+    try:
+        return current_app.chat_manager.chat_with_expert(request.get_json())
+    except Exception as e:
+        logger.error(f"Error in chat: {str(e)}")
+        return jsonify({"success": False, "error": "Error generating response"}), 500
+
+
+@expert_bp.route("/chat/stream", methods=["POST"])
+@jwt_required
+def chat_with_expert_stream():
+    """Chat with a specific expert (streaming)"""
+    try:
+        return current_app.chat_manager.chat_with_expert_stream(request.get_json())
+    except Exception as e:
+        logger.error(f"Error in streaming chat: {str(e)}")
+        return jsonify({"success": False, "error": "Error generating response"}), 500

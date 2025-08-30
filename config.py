@@ -26,6 +26,7 @@ class MyConfig:
     OPENAI_EMBEDDINGS_MODEL = os.getenv(
         "OPENAI_EMBEDDINGS_MODEL", "text-embedding-3-large"
     )
+    SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT", "You are a helpful assistant.")
 
     # Pinecone Configuration
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
@@ -34,6 +35,8 @@ class MyConfig:
     PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "podcast-chatbot")
     PINECONE_DIMENSION = int(os.getenv("PINECONE_DIMENSION", 3072))
     PINECONE_METRIC = os.getenv("PINECONE_METRIC", "cosine")
+    PINECONE_TOP_K = int(os.getenv("PINECONE_TOP_K", 5))
+    PINECONE_SCORE_THRESHOLD = float(os.getenv("PINECONE_SCORE_THRESHOLD", 0.7))
 
     # Authentication (Simple auth for demo)
     DEFAULT_DB_USERNAME = os.getenv("DEFAULT_DB_USERNAME")
