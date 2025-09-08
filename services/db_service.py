@@ -1,15 +1,10 @@
 import logging
 
-from typing import List, Optional
-from sqlalchemy import and_, or_, desc
+from sqlalchemy import and_, desc, func
 from datetime import datetime, timezone
+from typing import List, Optional, Dict
 from sqlalchemy.exc import IntegrityError
-from werkzeug.security import generate_password_hash
-from database.db_models import (
-    User,
-    Expert,
-    Episode,
-)
+from database.db_models import User, Expert, Episode
 
 logger = logging.getLogger(__name__)
 
@@ -193,3 +188,36 @@ class DatabaseService:
             logger.error(f"Error deleting episode: {str(e)}")
             self.db.session.rollback()
             return False
+
+    #########
+    # STATS #
+    #########
+    def get_user_stats(self, user_id: str) -> Dict:
+        """Get dashboard statistics for a user"""
+        try:
+            # Get total experts count
+            total_experts = (
+                self.db.session.query(func.count(Expert.id))
+                .filter(Expert.user_id == user_id)
+                .scalar()
+            )
+
+            # Get total episodes count
+            total_episodes = (
+                self.db.session.query(func.count(Episode.id))
+                .join(Expert, Episode.expert_id == Expert.id)
+                .filter(Expert.user_id == user_id)
+                .scalar()
+            )
+
+            return {
+                "total_experts": total_experts or 0,
+                "total_episodes": total_episodes or 0,
+            }
+
+        except Exception as e:
+            logger.error(f"Error getting user stats: {str(e)}")
+            return {
+                "total_experts": 0,
+                "total_episodes": 0,
+            }

@@ -6,10 +6,12 @@ from datetime import datetime
 from seed_db import init_database
 from database.db_models import db
 from routes.auth_routes import auth_bp
+from routes.user_routes import user_bp
 from utils.app_utils import setup_logging
 from routes.expert_routes import expert_bp
 from managers.auth_manager import AuthManager
 from managers.chat_manager import ChatManager
+from managers.user_manager import UserManager
 from flask import Flask, app, request, jsonify
 from services.db_service import DatabaseService
 from managers.expert_manager import ExpertManager
@@ -40,12 +42,14 @@ def create_app():
     db_service = DatabaseService(db)
     pinecone_service = PineconeService(app_config)
 
+    user_manager = UserManager(db_service)
     auth_manager = AuthManager(db_service, app_config)
     expert_manager = ExpertManager(db_service, pinecone_service)
     episode_manager = EpisodeManager(db_service, pinecone_service)
     chat_manager = ChatManager(app_config, db_service, pinecone_service)
 
     # Store services in app context
+    app.user_manager = user_manager
     app.auth_manager = auth_manager
     app.chat_manager = chat_manager
     app.expert_manager = expert_manager
@@ -65,6 +69,7 @@ def create_app():
 
     # Register blueprints
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
+    app.register_blueprint(user_bp, url_prefix="/api/users")
     app.register_blueprint(expert_bp, url_prefix="/api/experts")
 
     @app.route("/api/health", methods=["GET"])
@@ -100,7 +105,6 @@ def create_app():
 app = create_app()
 
 if __name__ == "__main__":
-
     logger = logging.getLogger(__name__)
     logger.info("Starting Podcast Chatbot server...")
     logger.info("Demo users:")
