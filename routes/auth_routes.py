@@ -8,7 +8,11 @@ auth_bp = Blueprint("auth", __name__)
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
-    """User login endpoint with JWT tokens"""
+    """Authenticate a user and return JWT tokens if successful.
+
+    This endpoint handles user authentication by validating the provided username and password.
+    On successful authentication, it returns access and refresh tokens.
+    """
     try:
         data = request.get_json()
         if not data or "username" not in data or "password" not in data:

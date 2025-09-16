@@ -11,7 +11,15 @@ user_bp = Blueprint("users", __name__)
 @user_bp.route("/<user_id>/stats", methods=["GET"])
 @jwt_required
 def get_user_stats(user_id):
-    """Get dashboard statistics for the authenticated user"""
+    """Retrieve dashboard statistics for the specified user.
+    
+    Args:
+        user_id (str): The ID of the user to get statistics for.
+        
+    Returns:
+        JSON: User statistics including metrics and counts.
+        Status codes: 200 (success), 500 (server error)
+    """
     try:
         return current_app.user_manager.get_user_stats(user_id)
     except Exception as e:

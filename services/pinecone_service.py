@@ -15,9 +15,28 @@ logger = logging.getLogger(__name__)
 
 
 class PineconeService:
-    """Manager for Pinecone vector database operations"""
+    """Service for managing vector database operations with Pinecone.
+    
+    This class handles all interactions with Pinecone's vector database, including
+    creating indexes, storing episode content as vector embeddings, and performing
+    similarity searches.
+    
+    Attributes:
+        config: Application configuration object
+        pc: Pinecone client instance
+        index_name: Name of the Pinecone index
+        embeddings: OpenAI embeddings model instance
+        text_splitter: Text splitter for chunking content
+    """
 
     def __init__(self, config: MyConfig):
+        """Initialize the PineconeService with configuration.
+        
+        Args:
+            config: Application configuration object containing API keys and settings
+            
+        Initializes the Pinecone client, embeddings model, and ensures the index exists.
+        """
         self.config = config
         self.pc = Pinecone(api_key=self.config.PINECONE_API_KEY)
         self.index_name = self.config.PINECONE_INDEX_NAME
@@ -31,7 +50,14 @@ class PineconeService:
         self._ensure_index_exists()
 
     def _ensure_index_exists(self):
-        """Ensure the Pinecone index exists"""
+        """Ensure the Pinecone index exists, create it if it doesn't.
+        
+        Creates a new serverless Pinecone index with the configured settings
+        if it doesn't already exist.
+        
+        Raises:
+            Exception: If there's an error creating the index
+        """
         try:
             if self.index_name not in self.pc.list_indexes().names():
                 logger.info(f"Creating Pinecone index: {self.index_name}")
@@ -54,15 +80,21 @@ class PineconeService:
         episode: Episode,
         db_expert_name: str,
     ) -> bool:
-        """
-        Store episode content in Pinecone
+        """Store episode content as vector embeddings in Pinecone.
+
+        Processes the episode content by splitting it into chunks, generating
+        embeddings for each chunk, and storing them in the Pinecone index.
 
         Args:
-            episode: Episode object containing all relevant data
-            db_expert_name: Name of the expert (for Pinecone)
+            episode: Episode object containing content to be stored
+            db_expert_name: Name of the expert (used as Pinecone namespace)
 
         Returns:
-            bool: Success status
+            bool: True if storage was successful, False otherwise
+            
+        Note:
+            The content is split into chunks of 1000 characters with 100 character
+            overlap between chunks for better context retention.
         """
         try:
             index = self.pc.Index(self.index_name)
@@ -107,15 +139,26 @@ class PineconeService:
     def query_knowledge(
         self, query: str, namespace: str, include_metadata: bool = True
     ) -> List[Dict[str, Any]]:
-        """
-        Query the knowledge base for relevant content
+        """Search the knowledge base for content relevant to the query.
+        
+        Converts the query to an embedding and searches the Pinecone index
+        for the most similar content chunks within the specified namespace.
 
         Args:
-            query: Search query
-            namespace: Pinecone namespace to search in
+            query: The search query string
+            namespace: Pinecone namespace to search within
+            include_metadata: Whether to include metadata in results (default: True)
 
         Returns:
-            List of relevant content chunks
+            List[Dict[str, Any]]: List of relevant content chunks, each containing:
+                - text: The chunk text
+                - score: Similarity score (0-1)
+                - episode_title: Title of the source episode
+                - episode_id: ID of the source episode
+                - metadata: Additional metadata
+                
+        Note:
+            The number of results is limited by PINECONE_TOP_K configuration.
         """
         try:
             index = self.pc.Index(self.index_name)
@@ -154,15 +197,18 @@ class PineconeService:
             return []
 
     def delete_episode(self, episode_id: str, namespace: str) -> bool:
-        """
-        Delete specified episode
-
+        """Delete all vector embeddings for a specific episode.
+        
         Args:
-            episode_id: Episode identifier
-            namespace: Pinecone namespace
-
+            episode_id: Unique identifier of the episode to delete
+            namespace: Pinecone namespace where the episode is stored
+            
         Returns:
-            bool: Success status
+            bool: True if deletion was successful, False otherwise
+            
+        Note:
+            This performs a query to find all vectors associated with the episode
+            and then deletes them in a batch operation.
         """
         try:
             index = self.pc.Index(self.index_name)
@@ -193,14 +239,17 @@ class PineconeService:
             return False
 
     def delete_namespace(self, namespace: str) -> bool:
-        """
-        Delete an entire namespace (expert)
-
+        """Delete an entire namespace (expert) and all its vectors.
+        
         Args:
-            namespace: Namespace to delete
-
+            namespace: Pinecone namespace to delete
+            
         Returns:
-            bool: Success status
+            bool: True if deletion was successful, False otherwise
+            
+        Warning:
+            This will permanently remove all vectors in the specified namespace.
+            Use with caution as this operation cannot be undone.
         """
         try:
             index = self.pc.Index(self.index_name)

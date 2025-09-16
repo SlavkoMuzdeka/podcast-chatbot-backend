@@ -10,16 +10,32 @@ logger = logging.getLogger(__name__)
 
 
 class DatabaseService:
-    """Service layer for database operations"""
+    """Service layer for database operations.
+    
+    This class provides an abstraction layer over database operations, handling
+    common CRUD operations for users, experts, and episodes.
+    """
 
     def __init__(self, db):
+        """Initialize the DatabaseService with a database instance.
+        
+        Args:
+            db: SQLAlchemy database instance
+        """
         self.db = db
 
     ########
     # USER #
     ########
     def get_user_by_username(self, username: str) -> Optional[User]:
-        """Get user by username"""
+        """Retrieve a user by their username.
+        
+        Args:
+            username: The username to search for
+            
+        Returns:
+            Optional[User]: User object if found, None otherwise
+        """
         try:
             return self.db.session.query(User).filter(User.username == username).first()
         except Exception as e:
@@ -32,7 +48,19 @@ class DatabaseService:
     def create_expert(
         self, user_id: str, expert_name: str, expert_description: str
     ) -> Optional[Expert]:
-        """Create a new expert"""
+        """Create a new expert profile.
+        
+        Args:
+            user_id: ID of the user creating the expert
+            expert_name: Name for the new expert
+            expert_description: Description of the expert
+            
+        Returns:
+            Optional[Expert]: The created Expert object if successful, None otherwise
+            
+        Raises:
+            IntegrityError: If an expert with the same name already exists
+        """
         try:
             expert = Expert(
                 user_id=user_id,
@@ -60,7 +88,14 @@ class DatabaseService:
             return None
 
     def get_user_experts(self, user_id: str) -> List[Expert]:
-        """Get all experts for a user"""
+        """Retrieve all experts belonging to a specific user.
+        
+        Args:
+            user_id: ID of the user whose experts to retrieve
+            
+        Returns:
+            List[Expert]: List of Expert objects, ordered by creation date (newest first)
+        """
         try:
             return (
                 self.db.session.query(Expert)
@@ -73,7 +108,14 @@ class DatabaseService:
             return []
 
     def get_expert_by_id(self, expert_id: str) -> Optional[Expert]:
-        """Get expert by ID"""
+        """Retrieve an expert by their ID.
+        
+        Args:
+            expert_id: The ID of the expert to retrieve
+            
+        Returns:
+            Optional[Expert]: Expert object if found, None otherwise
+        """
         try:
             return Expert.query.get(expert_id)
         except Exception as e:
@@ -81,7 +123,15 @@ class DatabaseService:
             return None
 
     def delete_expert(self, expert_id: str, user_id: str) -> bool:
-        """Delete expert (soft delete)"""
+        """Delete an expert profile.
+        
+        Args:
+            expert_id: ID of the expert to delete
+            user_id: ID of the user making the request (for authorization)
+            
+        Returns:
+            bool: True if deletion was successful, False otherwise
+        """
         try:
             expert = (
                 self.db.session.query(Expert)
@@ -109,7 +159,16 @@ class DatabaseService:
     def create_episode(
         self, expert_id: str, title: str, content: str
     ) -> Optional[Episode]:
-        """Create a new episode"""
+        """Create a new episode for an expert.
+        
+        Args:
+            expert_id: ID of the expert this episode belongs to
+            title: Title of the episode
+            content: Content/transcript of the episode
+            
+        Returns:
+            Optional[Episode]: The created Episode object if successful, None otherwise
+        """
         try:
             episode = Episode(expert_id=expert_id, title=title, content=content)
 
@@ -128,7 +187,14 @@ class DatabaseService:
             return None
 
     def get_episodes(self, expert_id: str) -> List[Episode]:
-        """Get all episodes for an expert"""
+        """Retrieve all episodes for a specific expert.
+        
+        Args:
+            expert_id: ID of the expert whose episodes to retrieve
+            
+        Returns:
+            List[Episode]: List of Episode objects, ordered by creation date (newest first)
+        """
         try:
             return (
                 self.db.session.query(Episode)
@@ -141,7 +207,14 @@ class DatabaseService:
             return []
 
     def get_episode_by_id(self, episode_id: str) -> Optional[Episode]:
-        """Get episode by ID"""
+        """Retrieve an episode by its ID.
+        
+        Args:
+            episode_id: The ID of the episode to retrieve
+            
+        Returns:
+            Optional[Episode]: Episode object if found, None otherwise
+        """
         try:
             return Episode.query.get(episode_id)
         except Exception as e:
@@ -149,7 +222,15 @@ class DatabaseService:
             return None
 
     def update_episode(self, episode_id: str, **kwargs) -> Optional[Episode]:
-        """Update episode"""
+        """Update an existing episode's information.
+        
+        Args:
+            episode_id: ID of the episode to update
+            **kwargs: Key-value pairs of fields to update
+            
+        Returns:
+            Optional[Episode]: The updated Episode object if successful, None otherwise
+        """
         try:
             episode = self.get_episode_by_id(episode_id)
 
@@ -173,7 +254,14 @@ class DatabaseService:
             return None
 
     def delete_episode(self, episode_id: str) -> bool:
-        """Delete an episode"""
+        """Permanently delete an episode.
+        
+        Args:
+            episode_id: ID of the episode to delete
+            
+        Returns:
+            bool: True if deletion was successful, False otherwise
+        """
         try:
             episode = self.get_episode_by_id(episode_id)
             if not episode:
@@ -193,7 +281,16 @@ class DatabaseService:
     # STATS #
     #########
     def get_user_stats(self, user_id: str) -> Dict:
-        """Get dashboard statistics for a user"""
+        """Retrieve statistics for a user's dashboard.
+        
+        Args:
+            user_id: ID of the user to get statistics for
+            
+        Returns:
+            Dict: Statistics including:
+                - total_experts: Number of experts the user has
+                - total_episodes: Total number of episodes across all experts
+        """
         try:
             # Get total experts count
             total_experts = (

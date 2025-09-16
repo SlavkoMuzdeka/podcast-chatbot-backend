@@ -9,12 +9,40 @@ logger = logging.getLogger(__name__)
 
 
 class EpisodeManager:
+    """Manages podcast episode operations including CRUD and vector storage.
+
+    This class handles all operations related to podcast episodes including creation,
+    retrieval, updating, and deletion, while maintaining consistency between the
+    database and vector storage (Pinecone).
+    """
+
     def __init__(self, db_service: DatabaseService, pinecone_service: PineconeService):
-        """Initialize episode manager with Pinecone and Database"""
+        """Initialize the EpisodeManager with required services.
+
+        Args:
+            db_service: Service for database operations
+            pinecone_service: Service for vector storage operations
+        """
         self.db_service = db_service
         self.pinecone_service = pinecone_service
 
-    def create_episode(self, expert_id: str, data: Dict):
+    def create_episode(self, expert_id: str, data: Dict) -> tuple:
+        """Create a new episode for an expert.
+
+        This method creates a new episode in the database and stores its content in Pinecone
+        for vector search capabilities.
+
+        Args:
+            expert_id: ID of the expert who owns the episode
+            data: Dictionary containing episode data with keys:
+                - title: Episode title (required)
+                - content: Episode content/transcript (required)
+
+        Returns:
+            tuple: (JSON response, HTTP status code)
+                On success: {"success": True, "data": {"episode": dict}} with status 201
+                On error: {"success": False, "error": str} with appropriate status code
+        """
         expert = self.db_service.get_expert_by_id(expert_id)
 
         is_valid, error_message = self._validate_data(expert, data)
@@ -34,8 +62,17 @@ class EpisodeManager:
         else:
             return jsonify({"success": False, "error": "Failed to create episode"}), 500
 
-    def get_episodes(self, expert_id):
-        """Get all episodes for a specific expert"""
+    def get_episodes(self, expert_id: str) -> tuple:
+        """Retrieve all episodes for a specific expert.
+
+        Args:
+            expert_id: ID of the expert whose episodes to retrieve
+
+        Returns:
+            tuple: (JSON response, HTTP status code)
+                On success: {"success": True, "data": {"episodes": list[dict]}} with status 200
+                Each episode dict contains the episode's details including id, title, and content
+        """
         db_episodes = self.db_service.get_episodes(expert_id)
         episodes = []
 
@@ -44,8 +81,25 @@ class EpisodeManager:
 
         return jsonify({"success": True, "data": {"episodes": episodes}}), 200
 
-    def update_episode(self, expert_id: str, episode_id: str, data: Dict):
-        """Update an existing episode"""
+    def update_episode(self, expert_id: str, episode_id: str, data: Dict) -> tuple:
+        """Update an existing episode's metadata and content.
+
+        This method updates both the database record and the corresponding
+        vector embeddings in Pinecone. It first validates the input data,
+        then updates the database, and finally updates the vector storage.
+
+        Args:
+            expert_id: ID of the expert who owns the episode
+            episode_id: ID of the episode to update
+            data: Dictionary containing update data with keys:
+                - title: New episode title (required)
+                - content: New episode content/transcript (required)
+
+        Returns:
+            tuple: (JSON response, HTTP status code)
+                On success: {"success": True} with status 200
+                On error: {"success": False, "error": str} with appropriate status code
+        """
         db_expert = self.db_service.get_expert_by_id(expert_id)
 
         is_valid, error_message = self._validate_data(db_expert, data)
@@ -94,7 +148,22 @@ class EpisodeManager:
 
         return jsonify({"success": True}), 200
 
-    def delete_episode(self, expert_id: str, episode_id: str):
+    def delete_episode(self, expert_id: str, episode_id: str) -> tuple:
+        """Delete an episode and its associated vector embeddings.
+
+        This method performs a cascading delete, removing the episode from both
+        the database and Pinecone vector storage. It first verifies the expert
+        and episode exist, then deletes from Pinecone before removing from the database.
+
+        Args:
+            expert_id: ID of the expert who owns the episode
+            episode_id: ID of the episode to delete
+
+        Returns:
+            tuple: (JSON response, HTTP status code)
+                On success: {"success": True, "message": str} with status 200
+                On error: {"success": False, "error": str} with appropriate status code
+        """
         expert = self.db_service.get_expert_by_id(expert_id)
         if not expert:
             return (
@@ -102,7 +171,7 @@ class EpisodeManager:
                 404,
             )
 
-        # Verify episode belongs to expert
+        # Verify episode exists
         episode = self.db_service.get_episode_by_id(episode_id)
         if not episode:
             return jsonify({"success": False, "error": "Episode not found"}), 404
@@ -143,14 +212,31 @@ class EpisodeManager:
         )
 
     def _validate_data(self, expert, data: Dict) -> Tuple[bool, str]:
+        """Validate episode data before processing.
+
+        This helper method checks that all required fields are present and non-empty.
+        It's used by both create and update operations to ensure data consistency.
+
+        Args:
+            expert: Expert object or None if expert not found
+            data: Dictionary containing episode data to validate
+
+        Returns:
+            tuple: (is_valid: bool, error_message: str)
+                - is_valid: True if data is valid, False otherwise
+                - error_message: Empty string if valid, otherwise describes the error
+        """
         if not expert:
             return False, "Expert not found"
         if not data:
             return False, "No data provided"
+
         title = data.get("title", "").strip()
         content = data.get("content", "").strip()
+
         if not title:
             return False, "Episode title is required"
         if not content:
             return False, "Episode content is required"
+
         return True, ""
